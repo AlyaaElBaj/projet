@@ -13,7 +13,9 @@ import numpy as np # linear algebra
 
 from sklearn.preprocessing import StandardScaler
 
-
+import torch
+from torch import nn
+from torch.utils.data import TensorDataset, DataLoader
 
 #Set diractory
 import os;
@@ -31,33 +33,7 @@ df.info()
 nRow, nCol = df.shape
 print(f'There are {nRow} rows and {nCol} columns')
 
-######################################################################
-# Distribution graphs (histogram/bar graph) of column data
-def plotPerColumnDistribution(df, nGraphShown, nGraphPerRow):
-    nunique = df.nunique()
-    df = df[[col for col in df if nunique[col] > 1 and nunique[col] < 50]] # For displaying purposes, pick columns that have between 1 and 50 unique values
-    nRow, nCol = df.shape
-    columnNames = list(df)
-    nGraphRow = (nCol + nGraphPerRow - 1) / nGraphPerRow
-    plt.figure(num = None, figsize = (6 * nGraphPerRow, 8 * nGraphRow), dpi = 80, facecolor = 'w', edgecolor = 'k')
-    for i in range(min(nCol, nGraphShown)):
-        plt.subplot(nGraphRow, nGraphPerRow, i + 1)
-        columnDf = df.iloc[:, i]
-        if (not np.issubdtype(type(columnDf.iloc[0]), np.number)):
-            valueCounts = columnDf.value_counts()
-            valueCounts.plot.bar()
-        else:
-            columnDf.hist()
-        plt.ylabel('counts')
-        plt.xticks(rotation = 90)
-        plt.title(f'{columnNames[i]} (column {i})')
-    plt.tight_layout(pad = 1.0, w_pad = 1.0, h_pad = 1.0)
-    plt.show()
-    
-############################################################################
 
-#plotPerColumnDistribution(df.drop("Direction"), 10, 5)
-    #
 
 # For more information about the Data Set:
 #Aggregate data to get mean traffic in each direction, by the hour, at all sensor locations
@@ -67,22 +43,36 @@ hourly_vol.sample(2)
 
 
 # Creating a datetime index
-df.index = pd.to_datetime(df["Year"] * 100000000 +df["Month"]*1000000+ df["Day"] * 10000 + df["Hour"]*100 +df["Minute"], format="%Y%m%d%H%M")
-df = df.drop(columns=["Year", "Month", "Day","Day of Week","Hour","Minute","Time Bin"])
+#I dropped the minutes
+df.index = pd.to_datetime(df["Year"] * 100000000 +df["Month"]*1000000+ df["Day"] * 10000 + df["Hour"]*100 , format="%Y%m%d%H%M")
+df = df.drop(columns=[ "Month", "Day","Day of Week","Hour","Minute","Time Bin"])
 df.head()  #Our Data Set can be seen now as a Time Serie
-#May be je me trompe ici parce j'ai l'impression que ça ne va pas avec un ordre chronologique.
+
 
 
 # Dealing with missing values
 df = df.replace(to_replace='None', value=np.nan).dropna()
 # The Data Set contains a lot of rows, so dropping rows where there is None won't affect the size of our Data and we will still have a lot of Data to train the Model.
-#okay pas sure parce que là c'est une série tempo on a besoin d'un temps continu non ?
+# In fact we could have let None, and predict the traffic volume even if as an input we don't really have an idea about the direction.
 
-# I will drop the columnslocation_latitude and location_longitude because I will only use location name and direction as inputs to predict the output Volume
+# I will drop the columns location_latitude and location_longitude because I will only use location name and direction as inputs to predict the output Volume
 df = df.drop(columns=["location_latitude", "location_longitude"])
 
+#sorting the data
+df=df.sort_values(by='Year',ascending=True)
 
 #plot
 plt.rcParams['agg.path.chunksize'] = 10000
 plt.plot(df.drop(columns=['location_name','Direction']))
 plt.show()
+
+
+
+#df.index[2745990]  
+#Creating a train set and validation set
+train_set = df[:'2019-08-13 02:00:00']
+valid_set = df['2019-08-13 02:00:00':]
+print('Proportion of train_set : {:.2f}%'.format(len(train_set)/len(df)))
+#Proportion of train_set : 0.89%
+print('Proportion of valid_set : {:.2f}%'.format(len(valid_set)/len(df)))
+#Proportion of valid_set : 0.11%
