@@ -17,7 +17,7 @@ from sklearn.preprocessing import StandardScaler
 
 #Set diractory
 import os;
-path="C:/Users/Alyaa/Desktop/FinalProjetML/Final_ProjectML"
+path="C:/Users/Alyaa/Desktop/3AMines/ML"
 os.chdir(path)
 os.getcwd()
 
@@ -77,3 +77,12 @@ df.head()  #Our Data Set can be seen now as a Time Serie
 df = df.replace(to_replace='None', value=np.nan).dropna()
 # The Data Set contains a lot of rows, so dropping rows where there is None won't affect the size of our Data and we will still have a lot of Data to train the Model.
 #okay pas sure parce que là c'est une série tempo on a besoin d'un temps continu non ?
+
+# I will drop the columnslocation_latitude and location_longitude because I will only use location name and direction as inputs to predict the output Volume
+df = df.drop(columns=["location_latitude", "location_longitude"])
+
+
+#plot
+plt.rcParams['agg.path.chunksize'] = 10000
+plt.plot(df.drop(columns=['location_name','Direction']))
+plt.show()
