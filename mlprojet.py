@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt # plotting
 import pandas as pd
 from sklearn.impute import SimpleImputer
 import numpy as np # linear algebra
+import math
 
 from sklearn.preprocessing import StandardScaler
 
@@ -47,19 +48,20 @@ hourly_vol.sample(2)
 
 # Creating a datetime index
 #I dropped the minutes
-df.index = pd.to_datetime(df["Year"] * 100000000 +df["Month"]*1000000+ df["Day"] * 10000 + df["Hour"]*100 , format="%Y%m%d%H%M")
-df = df.drop(columns=[ "Year","Month", "Day","Day of Week","Hour","Minute","Time Bin"])
+df[["Year"]]= pd.to_datetime(df["Year"] * 100000000 +df["Month"]*1000000+ df["Day"] * 10000 + df["Hour"]*100 , format="%Y%m%d%H%M")
+df = df.drop(columns=[ "Month", "Day","Day of Week","Hour","Minute","Time Bin"])
 df.head()  #Our Data Set can be seen now as a Time Serie
 
+# I will drop the columns location_latitude and location_longitude because I will only use location name and direction as inputs to predict the output Volume
+df = df.drop(columns=["location_latitude", "location_longitude"])
 
+#sorting the data
+df=df.sort_values(by='Year',ascending=True)
 
 # Dealing with missing values
 df = df.replace(to_replace='None', value=np.nan).dropna()
 # The Data Set contains a lot of rows, so dropping rows where there is None won't affect the size of our Data and we will still have a lot of Data to train the Model.
 # In fact we could have let None, and predict the traffic volume even if as an input we don't really have an idea about the direction.
-
-# I will drop the columns location_latitude and location_longitude because I will only use location name and direction as inputs to predict the output Volume
-df = df.drop(columns=["location_latitude", "location_longitude"])
 
 
 #plot
@@ -67,9 +69,21 @@ df = df.drop(columns=["location_latitude", "location_longitude"])
 #plt.plot(df.drop(columns=['location_name','Direction']))
 #plt.show()
 
+def output_for_couple(location,direction):
+    #location and direction are strings
+    extract=df.loc[df.location_name==location][df.Direction==direction]
+    #dates=extract['Date']
+    volume=extract['Volume'].to_numpy()
+    return volume
+            
+
+
 #creating my inputs and outputs
-x=df.drop(columns=["Volume"])
-y=df.drop(columns=["location_name","Direction"])
+x=df.drop(columns=["Volume","Year"])
+x.to_numpy()
+y=df.drop(columns=["location_name","Direction","Year"])
+y.to_numpy()
+
 #scaler_y = MinMaxScaler()
 #print(scaler_y.fit(y))
 #yscale=scaler_y.transform(y)
