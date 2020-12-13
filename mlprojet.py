@@ -64,32 +64,42 @@ df = df.replace(to_replace='None', value=np.nan).dropna()
 # In fact we could have let None, and predict the traffic volume even if as an input we don't really have an idea about the direction.
 
 
-#plot
-#plt.rcParams['agg.path.chunksize'] = 10000
-#plt.plot(df.drop(columns=['location_name','Direction']))
-#plt.show()
 
-def output_for_couple(location,direction):
+
+# Preparation de notre output et input:
+
+def ts_for_couple(location,direction):
     #location and direction are strings
     extract=df.loc[df.location_name==location][df.Direction==direction]
     #dates=extract['Date']
     volume=extract['Volume'].to_numpy()
     return volume
-            
 
 
-#creating my inputs and outputs
-x=df.drop(columns=["Volume","Year"])
-x.to_numpy()
-y=df.drop(columns=["location_name","Direction","Year"])
-y.to_numpy()
+
+#On va stocker notre data dans un dictionnaire qui prend comme clé le couple (location,direction) et lui attribue sa série 
+#temporelle correspondante.
+dict_df={}
+couples=df[['location_name','Direction']]
+couples=[tuple(couples.iloc[i]) for i in range(couples.shape[0])]
+volume=[]
+for couple in couples:
+    location,direction=couple
+    volume.append(ts_for_couple(location,direction))
+for i in range(len(volume)):
+    key=couples[i] #(location,direction)
+    dict_df[key]=volume[i] 
+
+
+#on va scallé les volume (aka notre y) plus tard
+
+
 
 #scaler_y = MinMaxScaler()
 #print(scaler_y.fit(y))
 #yscale=scaler_y.transform(y)
 #on ne peut pas scaller x car c'est des variables qualitatives mais j'ai scaller y (pas sure si j ai le droit de scaller que y)
 
-train_x, valid_x, train_y, valid_y = train_test_split(x, y,test_size=0.2)  #training and testing set on scalled data
 
 
 ######################## autre façon pour le val set et train set ######################################
