@@ -64,8 +64,28 @@ df = df.replace(to_replace='None', value=np.nan).dropna()
 # In fact we could have let None, and predict the traffic volume even if as an input we don't really have an idea about the direction.
 
 
+#df.index[2745990]  
+#Creating a train set and validation set
+train_set = df[:'2019-08-13 02:00:00']   #oublie pas de changer l'indice au lieu de year
+test_set = df['2019-08-13 02:00:00':]
+print('Proportion of train_set : {:.2f}%'.format(len(train_set)/len(df)))
+#Proportion of train_set : 0.89%
+print('Proportion of test_set : {:.2f}%'.format(len(test_set)/len(df)))
+#Proportion of test_set : 0.11%
+
+#Let's focus on train set
+train_set.describe()
+print(train_set.shape)
+train_set.head()
 
 
+#Let's focus on validation set
+test_set.describe()
+print(train_set.shape)
+train_set.head()
+
+
+"""
 # Preparation de notre output et input:
 
 def ts_for_couple(location,direction):
@@ -91,7 +111,7 @@ for i in range(len(volume)):
     dict_df[key]=volume[i] 
 
 
-#on va scallé les volume (aka notre y) plus tard
+#on va scallé les volume (aka notre y) plus tard """
 
 
 
