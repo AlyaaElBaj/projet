@@ -21,6 +21,8 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
+
+
 #Set diractory
 import os;
 path="C:/Users/Alyaa/Desktop/3AMines/ML"
@@ -63,7 +65,68 @@ df = df.replace(to_replace='None', value=np.nan).dropna()
 # The Data Set contains a lot of rows, so dropping rows where there is None won't affect the size of our Data and we will still have a lot of Data to train the Model.
 # In fact we could have let None, and predict the traffic volume even if as an input we don't really have an idea about the direction.
 
+#count number of couples (location, direction)
+#list of location_names
+names=df['location_name'].unique().tolist()
+#list of directions 
+directions=['NB','SB','EB','WB']
 
+
+#rearrange data
+d = {'location_name': group['location_name'], 'Direction': group['Direction'],'Year': group['Year'],'Volume':group['Volume']}
+data2=pd.DataFrame(data=d)
+
+date = data2.groupby(['location_name','Direction']).size()
+count_u = data2.groupby(['location_name','Direction']).size().reset_index().rename(columns={0:'count'})
+#40 rows=40 couples (location, direction)
+count_u.info()
+#let's check if all the couples have sufficient data
+min(count_u['count']) #1
+max(count_u['count']) # 17206
+count_u['count'].mean() #12392.15
+count_u=count_u.sort_values(['count'])
+#we delete couples who have less than 100 counts
+new_data = count_u[count_u['count'] > 4000] #7 couples were deleted, 34 are left
+min(new_data['count']) #11491
+#for each location and direction we will have a time series
+#where the volume is a function of "Date-Hour"
+
+
+
+
+
+
+def ts_for_couple(location,direction):
+    #location and direction are strings
+    extract=df.loc[df.location_name==location][df.Direction==direction]
+    #dates=extract['Date']
+    volume=extract['Volume'].to_numpy()
+    return volume
+
+
+#On va stocker notre data dans un dictionnaire qui prend comme clé le couple (location,direction) et lui attribue sa série 
+#temporelle correspondante.
+dict_df={}
+couples=df[['location_name','Direction']]
+couples=[tuple(couples.iloc[i]) for i in range(couples.shape[0])]
+volume=[]
+for couple in couples:
+    location,direction=couple
+    volume.append(ts_for_couple(location,direction))
+for i in range(len(volume)):
+    key=couples[i] #(location,direction)
+    dict_df[key]=volume[i] 
+
+
+#on va scallé les volume (aka notre y) plus tard 
+    
+    
+    
+    
+    
+    
+    
+ """
 #df.index[2745990]  
 #Creating a train set and validation set
 train_set = df[:'2019-08-13 02:00:00']   #oublie pas de changer l'indice au lieu de year
@@ -72,6 +135,9 @@ print('Proportion of train_set : {:.2f}%'.format(len(train_set)/len(df)))
 #Proportion of train_set : 0.89%
 print('Proportion of test_set : {:.2f}%'.format(len(test_set)/len(df)))
 #Proportion of test_set : 0.11%
+
+
+
 
 #Let's focus on train set
 train_set.describe()
@@ -142,7 +208,137 @@ for couple in couples:
 for i in range(len(volume)):
     key=couples[i] #(location,direction)
     dict_df[key]=volume[i] 
+    
+    
+class TimeCNN(nn.Module):
+    def __init__(self):
+        super(TimeCNN, self).__init__()
+        self.layer1 = nn.Sequential(
+            nn.Conv1d(in_channels=1, out_channels=32, kernel_size=3, padding=1), #64 entrée #80 sortie
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2, stride=2)  
+        )
+        self.layer2 = nn.Sequential(
+            nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3),
+            nn.ReLU(),
+            nn.AdaptiveMaxPool1d(8) #2
+        )
+        self.fc1 = nn.Linear(in_features=64*8, out_features=130)   #130 par 80
+        self.drop = nn.Dropout2d(0.3)
+        #self.fc2 = nn.Linear(in_features=128, out_features=32)
+        self.fc3 = nn.Linear(in_features=130, out_features=24*7)
+        
+    def forward(self, x):
+        out = self.layer1(x)
+        out = self.layer2(out)
+        out = out.view(out.size(0), -1)
+        out = self.fc1(out)
+        out = self.drop(out)
+        #out = self.fc2(out)
+        out = self.fc3(out)
+        return out
+#seq=Get_Time_Series(names[0], directions[0])
+#building the sliding window
+#n_steps=24*30*2 #2 months
+#horizon=24*7 #1 week
+#min count in data is 11491 we will have a lot more than 7(mincount//n_steps) samples-we only move the window by 24*7
+def split_ts(seq,horizon=24*7,n_steps=24*30*2):
+    """ this function take in arguments a traffic Time Series for the couple (l,d)
+    and applies a sliding window of length n_steps to generates samples having this 
+    length and their labels (to be predicted) whose size is horizon
+    """
+    #for the Min-Max normalization X-min(seq)/max(seq)-min(seq)
+    max_seq=max(seq)
+    min_seq=min(seq)
+    seq_norm=max_seq-min_seq
+    xlist, ylist = [], []
+    for i in range(len(seq)//horizon):
+        end= i*horizon + n_steps
+        if end+horizon > len(seq)-1:
+            break
+        xx = (seq[i*horizon:end]-min_seq)/seq_norm
+        xlist.append(torch.tensor(xx,dtype=torch.float32))
+        yy = (seq[end:(end+horizon)]-min_seq)/seq_norm
+        ylist.append(torch.tensor(yy,dtype=torch.float32))
+    print("number of samples %d and sample size %d (%d months)" %(len(xlist),len(xlist[0]),n_steps/(24*30)))
+    return(xlist,ylist)
 
+def train_test_set(xlist,ylist):
+    """ this functions splits the samples and labels datasets xlist and ylist
+    (given by the function split_ts) into a training set and a test set
+    """
+    """
+    data_size=len(xlist)
+    test_size=int(data_size*0.2) #20% of the dataset
+    #training set
+    X_train  = xlist[:data_size-test_size]
+    Y_train = ylist[:data_size-test_size]
+    #test set
+    X_test = xlist[data_size-test_size:]
+    Y_test = ylist[data_size-test_size:]
+    """
+    X_train, X_test, Y_train, Y_test =train_test_split(xlist,ylist,test_size=0.2,random_state=1)
+    return(X_train,Y_train,X_test,Y_test)
+
+def model_traffic(mod,seq,num_ep=60,horizon=24*7,n_steps=24*30*2):
+    #inputs are the model mod, the Time Series sequence and the number of epochs
+    #building the model
+    xlist,ylist = split_ts(seq,horizon,n_steps)
+    X_train,Y_train,X_test,Y_test=train_test_set(xlist,ylist)
+    idxtr = list(range(len(X_train)))
+    #loss and optimizer
+    loss = torch.nn.MSELoss()
+    opt = torch.optim.Adam(mod.parameters(),lr=0.0005)
+    for ep in range(num_ep):
+        shuffle(idxtr)
+        ep_loss=0.
+        mod.train()
+        for j in idxtr:
+            opt.zero_grad()
+            #forward pass
+            haty = mod(X_train[j].view(1,1,-1))
+            # print("pred %f" % (haty.item()*vnorm))
+            lo = loss(haty,Y_train[j].view(1,-1))
+            #backward pass
+            lo.backward()
+            #optimization
+            opt.step()
+            ep_loss += lo.item()
+        #model evaluation
+        mod.eval()
+        test_loss=0
+        for i in range(len(X_test)):    
+            haty = mod(X_test[i].view(1,1,-1))
+            test_loss+= loss(haty,Y_test[i].view(1,-1))
+        if ep%50==0:
+            print("epoch %d training loss %1.9f test loss %1.9f" % (ep, ep_loss, test_loss.item()))
+    #selected model (last epoch)
+    test_loss=0
+    for i in range(len(X_test)):    
+        haty = mod(X_test[i].view(1,1,-1))
+        test_loss+= loss(haty,Y_test[i].view(1,-1))
+    return ep_loss,test_loss
+
+
+###################################################################
+# TRAINING AND EVALUATION OF THE MODEL FOR EACH (LOCATION,DIRECTION)
+###################################################################
+results = pd.DataFrame( columns = ["couple", "training_loss", "test_loss"])
+num_ep=10000
+horizon=24*7
+n_steps=24*28*3
+for l,d in data_dict.keys():
+    seq=data_dict[(l,d)] #volume sequence for (l,d) location, direction
+    xlist,ylist = split_ts(seq,horizon,n_steps)
+    print("couple:",(l,d))
+    print("number of samples in the dataset:", len(xlist))
+    mod = TimeCNN()
+    train_loss, test_loss =model_traffic(mod,seq,num_ep,horizon,n_steps)
+    print("train_loss, test_loss =", train_loss, test_loss, "\n")
+    results.loc[len(results)] = [couple, train_loss, test_loss]
+    del(mod)
+
+ 
 
 #on va scallé les volume (aka notre y) plus tard """
 
@@ -177,119 +373,7 @@ for i in range(len(volume)):
 
 #######################################################################################################""
 
-class Model(nn.Module):
-    def __init__(self):
-        super(Model, self).__init__()
-        self.hiddensize =20
-        self.n_layers = 1
-        self.rnn = nn.RNN(1, self.hiddensize, self.n_layers, batch_first=True, nonlinearity='relu')
-        self.fc = nn.Linear(self.hiddensize, 2)
 
-        # special init: predict inputs
-        # self.rnn.load_state_dict({'weight_ih_l0':torch.Tensor([[1.]]),'weight_hh_l0':torch.Tensor([[0.]]),'bias_ih_l0':torch.Tensor([0.]),'bias_hh_l0':torch.Tensor([0.])},strict=False)
-        print(self.rnn.state_dict())
-        # self.fc.load_state_dict({'weight':torch.Tensor([[1.]]),'bias':torch.Tensor([0.])},strict=False)
-        print(self.fc.state_dict())
-
-    def forward(self, x):
-
-        batch_size = x.size(0)
-
-        # Initializing hidden state for first input using method defined below
-        hidden = self.init_hidden(batch_size)
-
-        # Passing in the input and hidden state into the model and obtaining outputs
-        _, hidden = self.rnn(x, hidden)
-
-        # Reshaping the outputs such that it can be fit into the fully connected layer
-        out = self.fc(hidden.view(-1,self.hiddensize))
-
-        return out
-
-    def init_hidden(self, batch_size):
-        # This method generates the first hidden state of zeros which we'll use in the forward pass
-        hidden = torch.zeros(self.n_layers, batch_size, self.hiddensize)
-        return hidden
-
-class ModelAtt(Model):
-    def __init__(self):
-        super(ModelAtt, self).__init__()
-        qnp = 0.1*np.random.rand(self.hiddensize)
-        self.q = nn.Parameter(torch.Tensor(qnp))
-
-    def forward(self, x):
-        batch_size = x.size(0)
-        hidden = self.init_hidden(batch_size)
-        steps, last = self.rnn(x, hidden)
-        alpha = torch.matmul(steps,self.q)
-        alpha = nn.functional.softmax(alpha,dim=1)
-        alpha2 = alpha.unsqueeze(-1).expand_as(steps)
-        weighted = torch.mul(steps, alpha2)
-        rep = weighted.sum(dim=1)
-        out = self.fc(rep)
-        return out, alpha
-
-# create training corpus: a linear fonction
-def f(x,offset):
-    return 0.3*math.sin(0.1*x+offset)+0.5
-
-def gendata():
-    nex=100
-    nsteps=50
-    input_seqs = []
-    target_seqs = []
-    for ex in range(nex):
-        offset = np.random.rand()
-        input_seq=[f(x,offset) for x in range(nsteps)]
-        cl = np.random.randint(2)
-        target_seqs.append(cl)
-        if cl==0: perturb = 0.05
-        else: perturb = -0.05
-        pos=np.random.randint(25,45)
-        for t in range(pos,pos+5): input_seq[t]+=perturb
-        input_seqs.append(input_seq)
-
-    # Convert all this into pytorch tensors
-    input_seq = torch.Tensor(input_seqs)
-    input_seq = input_seq.view(nex,nsteps,1)
-    target_seq = torch.LongTensor(target_seqs)
-    return input_seq, target_seq
-
-trainx, trainy = gendata()
-devx, devy = gendata()
-
-# Instantiate the model
-model = ModelAtt()
-
-n_epochs = 10000
-lr=0.0001
-
-# Define Loss, Optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
-
-plt.plot(trainx[0].view(-1).numpy())
-plt.show()
-
-# Training Run
-for epoch in range(1, n_epochs + 1):
-    optimizer.zero_grad() # Clears existing gradients from previous epoch
-    output,_ = model(trainx)
-    loss = criterion(output, trainy)
-    loss.backward() # Does backpropagation and calculates gradients
-    optimizer.step() # Updates the weights accordingly
-
-    if epoch%100 == 0:
-        print('Epoch: %d/%d............. Loss %f' % (epoch, n_epochs, loss.item()))
-        if loss.item()<0.2: break
-
-    if epoch%100 == 0:
-        predy,_ = model(devx)
-        predy = predy.detach().numpy()
-        nok=0
-        for i in range(len(predy)):
-            if np.argmax(predy[i])==devy[i].item(): nok+=1
-        print("acc "+str(float(nok)/float(len(predy))))
 
 #class TrafficDataset(Dataset):
 #    def __init__(self,feature,target):
