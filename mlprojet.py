@@ -84,7 +84,40 @@ test_set.describe()
 print(train_set.shape)
 train_set.head()
 
+#Let's focus on train set
+train_set.describe()
+print(train_set.shape)
+train_set.head()
 
+
+#Let's focus on validation set
+test_set.describe()
+print(train_set.shape)
+train_set.head()
+
+
+print(train_set.index.min(), train_set.index.max())
+print(test_set.index.min(), test_set.index.max())
+
+def sin_transform(values):
+    return np.sin(2*np.pi*values/len(set(values)))
+
+def cos_transform(values):
+    return np.cos(2*np.pi*values/len(set(values)))
+
+
+df['dayofweek_sin'] = sin_transform(df['Day of Week'])
+df['dayofweek_cos'] = cos_transform(df['Day of Week'])
+df['month_sin'] = sin_transform(df['Month'])
+df['month_cos'] = cos_transform(df['Month'])
+df['day_sin'] = sin_transform(df['Day'])
+df['day_cos'] = cos_transform(df['Day'])
+
+
+
+plt.plot(sin_transform(np.arange(0,12)), label='month_sin')
+plt.plot(cos_transform(np.arange(0,12)), label='month_cos')
+plt.legend()
 """
 # Preparation de notre output et input:
 
