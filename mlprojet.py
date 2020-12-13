@@ -17,6 +17,9 @@ import torch
 from torch import nn
 from torch.utils.data import TensorDataset, DataLoader
 
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+
 #Set diractory
 import os;
 path="C:/Users/Alyaa/Desktop/3AMines/ML"
@@ -58,33 +61,44 @@ df = df.replace(to_replace='None', value=np.nan).dropna()
 # I will drop the columns location_latitude and location_longitude because I will only use location name and direction as inputs to predict the output Volume
 df = df.drop(columns=["location_latitude", "location_longitude"])
 
-#sorting the data
-df=df.sort_values(by='Year',ascending=True)
 
 #plot
-plt.rcParams['agg.path.chunksize'] = 10000
-plt.plot(df.drop(columns=['location_name','Direction']))
-plt.show()
+#plt.rcParams['agg.path.chunksize'] = 10000
+#plt.plot(df.drop(columns=['location_name','Direction']))
+#plt.show()
+
+#creating my inputs and outputs
+x=df.drop(columns=["Volume"])
+y=df.drop(columns=["location_name","Direction"])
+#scaler_y = MinMaxScaler()
+#print(scaler_y.fit(y))
+#yscale=scaler_y.transform(y)
+#on ne peut pas scaller x car c'est des variables qualitatives mais j'ai scaller y (pas sure si j ai le droit de scaller que y)
+
+train_x, valid_x, train_y, valid_y = train_test_split(x, y,test_size=0.2)  #training and testing set on scalled data
 
 
+######################## autre façon pour le val set et train set ######################################
 
 #df.index[2745990]  
 #Creating a train set and validation set
-train_set = df[:'2019-08-13 02:00:00']
-valid_set = df['2019-08-13 02:00:00':]
-print('Proportion of train_set : {:.2f}%'.format(len(train_set)/len(df)))
-#Proportion of train_set : 0.89%
-print('Proportion of valid_set : {:.2f}%'.format(len(valid_set)/len(df)))
-#Proportion of valid_set : 0.11%
-##
-
-# déterminons les inputs et outputs
-train_x=train_set.drop(columns=["Volume"])
-valid_x=valid_set.drop(columns=["Volume"])
-train_y=train_set.drop(columns="location_name","Direction")
-valid_y=valid_set.drop(columns="location_name","Direction")
+#train_set = df[:'2019-08-13 02:00:00']
+#valid_set = df['2019-08-13 02:00:00':]
+#print('Proportion of train_set : {:.2f}%'.format(len(train_set)/len(df)))
+##Proportion of train_set : 0.89%
+#print('Proportion of valid_set : {:.2f}%'.format(len(valid_set)/len(df)))
+##Proportion of valid_set : 0.11%
+###
+#
+## déterminons les inputs et outputs
+#train_x=train_set.drop(columns=["Volume"])
+#valid_x=valid_set.drop(columns=["Volume"])
+#train_y=train_set.drop(columns="location_name","Direction")
+#valid_y=valid_set.drop(columns="location_name","Direction")
 #faut transformer le x et le y en vecteur
 #je crois faut mettre le x et y avant les set train et validation train
+
+#######################################################################################################""
 
 class Model(nn.Module):
     def __init__(self):
