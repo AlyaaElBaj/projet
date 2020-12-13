@@ -71,6 +71,9 @@ names=df['location_name'].unique().tolist()
 #list of directions 
 directions=['NB','SB','EB','WB']
 
+#we sum the volume over minutes for each 'Year'
+group= df.groupby(by = ['location_name','Year','Direction'], as_index=False)['Volume'].sum()
+group.head()
 
 #rearrange data
 d = {'location_name': group['location_name'], 'Direction': group['Direction'],'Year': group['Year'],'Volume':group['Volume']}
@@ -78,19 +81,18 @@ data2=pd.DataFrame(data=d)
 
 date = data2.groupby(['location_name','Direction']).size()
 count_u = data2.groupby(['location_name','Direction']).size().reset_index().rename(columns={0:'count'})
-#40 rows=40 couples (location, direction)
+#32 rows=32 couples (location, direction)
 count_u.info()
 #let's check if all the couples have sufficient data
-min(count_u['count']) #1
+min(count_u['count']) #11491
 max(count_u['count']) # 17206
-count_u['count'].mean() #12392.15
+count_u['count'].mean() #14977.125
 count_u=count_u.sort_values(['count'])
 #we delete couples who have less than 100 counts
-new_data = count_u[count_u['count'] > 4000] #7 couples were deleted, 34 are left
+new_data = count_u[count_u['count'] > 4000] #we kept our 32 couples
 min(new_data['count']) #11491
 #for each location and direction we will have a time series
 #where the volume is a function of "Date-Hour"
-
 
 
 
@@ -107,7 +109,7 @@ def ts_for_couple(location,direction):
 #On va stocker notre data dans un dictionnaire qui prend comme clé le couple (location,direction) et lui attribue sa série 
 #temporelle correspondante.
 dict_df={}
-couples=df[['location_name','Direction']]
+couples=new_data[['location_name','Direction']]
 couples=[tuple(couples.iloc[i]) for i in range(couples.shape[0])]
 volume=[]
 for couple in couples:
@@ -185,29 +187,9 @@ plt.plot(sin_transform(np.arange(0,12)), label='month_sin')
 plt.plot(cos_transform(np.arange(0,12)), label='month_cos')
 plt.legend()
 """
-# Preparation de notre output et input:
-
-def ts_for_couple(location,direction):
-    #location and direction are strings
-    extract=df.loc[df.location_name==location][df.Direction==direction]
-    #dates=extract['Date']
-    volume=extract['Volume'].to_numpy()
-    return volume
 
 
-
-#On va stocker notre data dans un dictionnaire qui prend comme clé le couple (location,direction) et lui attribue sa série 
-#temporelle correspondante.
-dict_df={}
-couples=df[['location_name','Direction']]
-couples=[tuple(couples.iloc[i]) for i in range(couples.shape[0])]
-volume=[]
-for couple in couples:
-    location,direction=couple
-    volume.append(ts_for_couple(location,direction))
-for i in range(len(volume)):
-    key=couples[i] #(location,direction)
-    dict_df[key]=volume[i] 
+#### Le réseau de neuronnes #####
     
     
 class TimeCNN(nn.Module):
