@@ -231,9 +231,9 @@ results = pd.DataFrame( columns = ["couple", "training_loss", "test_loss"])
 num_ep=10000
 horizon=24*7
 n_steps=24*28*3
-for l,d in data_dict.keys():
-    seq=data_dict[(l,d)] #volume sequence for (l,d) location, direction
-    xlist,ylist = split_ts(seq,horizon,n_steps)
+for l,d in dict_df.keys():
+    seq=dict_df[(l,d)] #volume sequence for (l,d) location, direction
+    xlist,ylist = ts_sequence_building(seq,horizon,n_steps)
     print("couple:",(l,d))
     print("number of samples in the dataset:", len(xlist))
     mod = TimeCNN()
@@ -242,9 +242,29 @@ for l,d in data_dict.keys():
     results.loc[len(results)] = [couple, train_loss, test_loss]
     del(mod)
 
- 
+"""
+#############################################################################################################
+############################################################################################################# """
 
-#on va scallé les volume (aka notre y) plus tard """
+#################### Une Nouvelle approche #######################
+                    
+def split_sequence(sequence, n_steps):
+    x, y = list(), list()
+    for i in range(len(sequence)):
+        
+        end_ix = i + n_steps
+        
+        if end_ix > len(sequence)-1:
+            break
+        seq_x, seq_y = sequence[i:end_ix], sequence[end_ix]
+        x.append(seq_x)
+        y.append(seq_y)
+    return array(x), array(y)
+
+raw_seq = [10,20,30,40,50,60,70,80,90]
+n_steps = 3
+train_x,train_y = split_sequence(train_set.Elec_kW.values,n_steps)
+valid_x,valid_y = split_sequence(valid_set.Elec_kW.values,n_steps)
 
 
 
