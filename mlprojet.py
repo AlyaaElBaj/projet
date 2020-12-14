@@ -190,18 +190,24 @@ def train_test_set(xlist,ylist):
     X_train, X_test, Y_train, Y_test =train_test_split(xlist,ylist,test_size=0.2,random_state=1)  # test set is #20% of the dataset
     return(X_train,Y_train,X_test,Y_test)
 
+
 def model_traffic(mod,seq,num_ep=60,horizon=24*7,n_steps=24*30*2):
     #inputs are the model mod, the Time Series sequence and the number of epochs
     #building the model
-    xlist,ylist = ts_sequence_building(seq,horizon,n_steps)
+    xlist,ylist = split_ts(seq,horizon,n_steps)
     X_train,Y_train,X_test,Y_test=train_test_set(xlist,ylist)
     idxtr = list(range(len(X_train)))
     #loss and optimizer
     loss = torch.nn.MSELoss()
     opt = torch.optim.Adam(mod.parameters(),lr=0.0005)
+    loss_val_train=[]
+    loss_val_test=[]
+    #train_loader = torch.utils.data.DataLoader(train_data)
+    #test_loader = torch.utils.data.DataLoader(test_data)
     for ep in range(num_ep):
-        random.shuffle(idxtr)
-        ep_loss=0.
+        shuffle(idxtr)
+        ep_loss=0
+        test_loss=0
         mod.train()
         for j in idxtr:
             opt.zero_grad()
@@ -214,27 +220,32 @@ def model_traffic(mod,seq,num_ep=60,horizon=24*7,n_steps=24*30*2):
             #optimization
             opt.step()
             ep_loss += lo.item()
+        #ep_loss=ep_loss/len(X_train)
+        loss_val_train.append(ep_loss)
         #model evaluation
         mod.eval()
-        test_loss=0
         for i in range(len(X_test)):    
             haty = mod(X_test[i].view(1,1,-1))
-            test_loss+= loss(haty,Y_test[i].view(1,-1))
+            test_loss+= loss(haty,Y_test[i].view(1,-1)).item()
+        #test_loss=test_loss/len(X_test)
+        loss_val_test.append(test_loss)
         if ep%50==0:
-            print("epoch %d training loss %1.9f test loss %1.9f" % (ep, ep_loss, test_loss.item()))
-    #selected model (last epoch)
-    test_loss=0
-    for i in range(len(X_test)):    
-        haty = mod(X_test[i].view(1,1,-1))
-        test_loss+= loss(haty,Y_test[i].view(1,-1))
+            print("epoch %d training loss %1.9f test loss %1.9f" % (ep, ep_loss, test_loss))
+    #test_loss is given for the selected model (last epoch)
+    epochs=[i for i in range(num_ep)]
+    fig, ax = plt.subplots()
+    ax.plot(epochs,loss_val_train,label='training loss')
+    ax.plot(epochs,loss_val_test,label='test loss')
+    ax.legend()
+    plt.show()
     return ep_loss,test_loss
 
-#Now let's train and evaluate the model for each (location,direction)
 
 results = pd.DataFrame( columns = ["couple", "training_loss", "test_loss"])
 num_ep=10000
 horizon=24*7
 n_steps=24*28*3
+
 for l,d in dict_df.keys():
     seq=dict_df[(l,d)] #volume sequence for (l,d) location, direction
     xlist,ylist = ts_sequence_building(seq,horizon,n_steps)
@@ -246,6 +257,7 @@ for l,d in dict_df.keys():
     results.loc[len(results)] = [couple, train_loss, test_loss]
     del(mod)
 
+
 """
 #############################################################################################################
 ############################################################################################################# """
@@ -253,57 +265,80 @@ for l,d in dict_df.keys():
 #################### Une Nouvelle approche #######################
 
 # Load and cleanup data from csv file.
-df2 = pd.read_csv("Radar_Traffic_Counts.csv")
-# cleanup leading space in names
-df2['location_name']=df2.location_name.apply(lambda x: x.strip()) 
-
-#Aggregate data to get mean traffic in each direction, by the hour, at all sensor locations
-hourly_vol = df2.groupby(['location_name','location_latitude','location_longitude','Direction','Hour']).agg({'Volume':'mean'}).reset_index()
-hourly_vol.sample(2)
-
-# Creating a datetime column
-df2[["Year"]]= pd.to_datetime(df2["Year"] * 100000000 +df2["Month"]*1000000+ df2["Day"] * 10000 + df2["Hour"]*100 , format="%Y%m%d%H%M")
-df2 = df2.drop(columns=[ "Month", "Day","Day of Week","Hour","Minute","Time Bin"])
-
-#drop the columns location_latitude and location_longitude because I will only use location name and direction as inputs to predict the output Volume
-df2 = df2.drop(columns=["location_latitude", "location_longitude"])
-
-#sorting the data by 'Year'
-df2=df2.sort_values(by='Year',ascending=True)
-
-# Dealing with missing values
-df2 = df2.replace(to_replace='None', value=np.nan).dropna()
-
-#scaller le y
-y=np.array(df2['Volume'])
-y.reshape(1,-1)
-scaler_y = MinMaxScaler()
-print(scaler_y.fit(y))   #?????????????,
-yscale=scaler_y.transform(y)
-df2['Volume']=yscale
-
-#This time we will train our model only on one couple (location,direction) that will be choosen randomly
-#We will use data_couples used before to select randomly a couple
-def generate_ts_data():
+def generate_loc_direc():
     i=random.randint(0,32) #because we have 32 couples
     location=data_couples['location_name'][i]
     direction=data_couples['Direction'][i]
-    return df2[(df2['location_name']==location) & (df2['Direction']==direction)]
+    return (location,direction)
+location,direction=generate_loc_direc()
+print(location,direction)
 
-df3=generate_ts_data()
-#df3.index=pd.to_datetime(df3['Year'])
-#df3=df3.drop(columns=['Year'])
+df2 = pd.read_csv("Radar_Traffic_Counts.csv",parse_dates={"date": [3, 4, 5]}, keep_date_col=True)
+df2=df2.astype({'Volume': 'float'})
 
+df2 = df2.loc[df2["location_name"] == location]
+df2 = df2.loc[df2["Direction"] == direction]
+df2 = df2.groupby("date").agg({"Volume": "sum"}).sort_values("date").reset_index()
+df2=df2.set_index('date')
+
+## cleanup leading space in names
+#df2['location_name']=df2.location_name.apply(lambda x: x.strip()) 
+#
+##Aggregate data to get mean traffic in each direction, by the hour, at all sensor locations
+#hourly_vol = df2.groupby(['location_name','location_latitude','location_longitude','Direction','Hour']).agg({'Volume':'mean'}).reset_index()
+#hourly_vol.sample(2)
+#
+## Creating a datetime column
+#df2[["Year"]]= pd.to_datetime(df2["Year"] * 100000000 +df2["Month"]*1000000+ df2["Day"] * 10000 + df2["Hour"]*100 , format="%Y%m%d%H%M")
+#df2 = df2.drop(columns=[ "Month", "Day","Day of Week","Hour","Minute","Time Bin"])
+#
+##drop the columns location_latitude and location_longitude because I will only use location name and direction as inputs to predict the output Volume
+#df2 = df2.drop(columns=["location_latitude", "location_longitude"])
+#
+##sorting the data by 'Year'
+#df2=df2.sort_values(by='Year',ascending=True)
+#
+## Dealing with missing values
+#df2 = df2.replace(to_replace='None', value=np.nan).dropna()
+#df2=df2.astype({'Volume': 'float'})
+
+
+#scaller le y
+#y=np.array(df2['Volume'])
+##y.reshape(1,-1)
+#scaler_y = MinMaxScaler(feature_range=(0, 1-yy))
+#print(scaler_y.fit_transform(y.reshape(1,-1)))   #?????????????,
+#yscale=scaler_y.transform(y)
+#df2['Volume']=yscale
+
+#This time we will train our model only on one couple (location,direction) that will be choosen randomly
+#We will use data_couples used before to select randomly a couple
+#def generate_ts_data():
+#    i=random.randint(0,32) #because we have 32 couples
+#    location=data_couples['location_name'][i]
+#    direction=data_couples['Direction'][i]
+#    return df2[(df2['location_name']==location) & (df2['Direction']==direction)]
+#
+#df3=generate_ts_data()
+#df3=df3.drop(columns=['location_name','Year','Direction'])
+#
+
+traffic = np.array(df2["Volume"])
+scaler = MinMaxScaler(feature_range=(0, 1))
+traffic_normalized = scaler.fit_transform(traffic.reshape(-1, 1))
+df2["Volume"] = traffic_normalized
 #iciiii y a un problème !!!  + SCalller DATA !!!!!!!!!!
+
+
 
 #math.ceil(len(df3)*(8/10)) 
 #Creating a train set and validation set
-train_set1 = df3[:math.ceil(len(df3)*(8/10))]
-valid_set1 = df3[math.ceil(len(df3)*(8/10))+1:]
-print('Proportion of train_set : {:.2f}%'.format(len(train_set1)/len(df3)))
+train_set1 = df2[:math.ceil(len(df2)*(8/10))]
+valid_set1 = df2[math.ceil(len(df2)*(8/10))+1:]
+print('Proportion of train_set : {:.2f}%'.format(len(train_set1)/len(df2)))
 #Proportion of train_set : 0.80%
-print('Proportion of valid_set : {:.2f}%'.format(len(valid_set1)/len(df3)))
-#Proportion of valid_set : 0.10%
+print('Proportion of valid_set : {:.2f}%'.format(len(valid_set1)/len(df2)))
+#Proportion of valid_set : 0.20%
                     
 def split_sequence(sequence, n_steps):
     x, y = list(), list()
@@ -340,35 +375,35 @@ class TrafficDataset(Dataset):
         
         return item,label
     
-train = TrafficDataset(train_x.reshape(train_x.shape[0],train_x.shape[1],1),train_y)
-valid = TrafficDataset(valid_x.reshape(valid_x.shape[0],valid_x.shape[1],1),valid_y)
-train_loader = torch.utils.data.DataLoader(train,batch_size=2,shuffle=False)
-valid_loader = torch.utils.data.DataLoader(train,batch_size=2,shuffle=False)
+train = TrafficDataset(train_x.reshape(train_x.shape[0],1,train_x.shape[1]),train_y)
+valid = TrafficDataset(valid_x.reshape(valid_x.shape[0],1,valid_x.shape[1]),valid_y)
+train_loader = torch.utils.data.DataLoader(train,batch_size=3,shuffle=False)
+valid_loader = torch.utils.data.DataLoader(train,batch_size=3,shuffle=False)
     
 
 ## Modèle CNN    
-class CNN_ForecastNet(nn.Module):
+class CNN(nn.Module):
     #layers
     def __init__(self):
-        super(CNN_ForecastNet,self).__init__()
-        self.conv1d = nn.Conv1d(3,64,kernel_size=1)
-        self.relu = nn.ReLU(inplace=True)
-        self.fc1 = nn.Linear(64*2,50)
-        self.fc2 = nn.Linear(50,1)
+        super(CNN, self).__init__()
+        self.layer1 = nn.Sequential(
+            nn.Conv1d(in_channels = 1, out_channels = 64, kernel_size = 1),
+            nn.ReLU(),
+        )
+        self.fc = nn.Linear(in_features=3*64, out_features=1)
+        
         
     def forward(self,x):
-        x = self.conv1d(x)
-        x = self.relu(x)
-        x = x.view(-1)
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
+        y = self.layer1(x)
+        y = y.view(y.size(0), -1)
+        y = self.fc(y)
+        return y
         
-        return x
+        
     
     
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model = CNN_ForecastNet().to(device)
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+model = CNN()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 criterion = nn.MSELoss()
 
@@ -383,8 +418,7 @@ def Train():
     model.train()
     
     for idx, (inputs,labels) in enumerate(train_loader):
-        inputs = inputs.to(device)
-        labels = labels.to(device)
+        
         optimizer.zero_grad()
         preds = model(inputs.float())
         loss = criterion(preds,labels)
@@ -404,8 +438,7 @@ def Valid():
     
     with torch.no_grad():
         for idx, (inputs, labels) in enumerate(valid_loader):
-            inputs = inputs.to(device)
-            labels = labels.to(device)
+            
             optimizer.zero_grad()
             preds = model(inputs.float())
             loss = criterion(preds,labels)
@@ -415,14 +448,13 @@ def Valid():
         valid_losses.append(valid_loss.detach().numpy())
         print(f'valid_loss {valid_loss}')
 
+
+ 
 epochs = 200
 for epoch in range(epochs):
     print('epochs {}/{}'.format(epoch+1,epochs))
     Train()
     Valid()
-    gc.collect()
-    
- 
     
     
 #plot l'erreur
