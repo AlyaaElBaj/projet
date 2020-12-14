@@ -21,6 +21,8 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
+import random 
+
 
 
 #Set diractory
@@ -29,7 +31,7 @@ path="C:/Users/Alyaa/Desktop/3AMines/ML"
 os.chdir(path)
 os.getcwd()
 
-#test test gljfluglig
+
 # Load and cleanup data from csv file.
 df = pd.read_csv("Radar_Traffic_Counts.csv")
 # cleanup leading space in names
@@ -43,12 +45,11 @@ print(f'There are {nRow} rows and {nCol} columns')
 
 # For more information about the Data Set:
 #Aggregate data to get mean traffic in each direction, by the hour, at all sensor locations
-#Agréger les données pour obtenir le trafic moyen dans chaque direction, par heure, à tous les emplacements des capteurs
 hourly_vol = df.groupby(['location_name','location_latitude','location_longitude','Direction','Hour']).agg({'Volume':'mean'}).reset_index()
 hourly_vol.sample(2)
 
 
-# Creating a datetime index
+# Creating a datetime column
 #I dropped the minutes
 df[["Year"]]= pd.to_datetime(df["Year"] * 100000000 +df["Month"]*1000000+ df["Day"] * 10000 + df["Hour"]*100 , format="%Y%m%d%H%M")
 df = df.drop(columns=[ "Month", "Day","Day of Week","Hour","Minute","Time Bin"])
@@ -57,7 +58,7 @@ df.head()  #Our Data Set can be seen now as a Time Serie
 # I will drop the columns location_latitude and location_longitude because I will only use location name and direction as inputs to predict the output Volume
 df = df.drop(columns=["location_latitude", "location_longitude"])
 
-#sorting the data
+#sorting the data by 'Year'
 df=df.sort_values(by='Year',ascending=True)
 
 # Dealing with missing values
@@ -65,7 +66,7 @@ df = df.replace(to_replace='None', value=np.nan).dropna()
 # The Data Set contains a lot of rows, so dropping rows where there is None won't affect the size of our Data and we will still have a lot of Data to train the Model.
 # In fact we could have let None, and predict the traffic volume even if as an input we don't really have an idea about the direction.
 
-#count number of couples (location, direction)
+#we want to count number of couples (location, direction)
 #list of location_names
 names=df['location_name'].unique().tolist()
 #list of directions 
@@ -75,29 +76,24 @@ directions=['NB','SB','EB','WB']
 group= df.groupby(by = ['location_name','Year','Direction'], as_index=False)['Volume'].sum()
 group.head()
 
-#rearrange data
+#Rearrange data
 d = {'location_name': group['location_name'], 'Direction': group['Direction'],'Year': group['Year'],'Volume':group['Volume']}
 data2=pd.DataFrame(data=d)
 
 date = data2.groupby(['location_name','Direction']).size()
-count_u = data2.groupby(['location_name','Direction']).size().reset_index().rename(columns={0:'count'})
+data_couples = data2.groupby(['location_name','Direction']).size().reset_index().rename(columns={0:'sum'})
 #32 rows=32 couples (location, direction)
-count_u.info()
+data_couples.info()
 #let's check if all the couples have sufficient data
-min(count_u['count']) #11491
-max(count_u['count']) # 17206
-count_u['count'].mean() #14977.125
-count_u=count_u.sort_values(['count'])
-#we delete couples who have less than 100 counts
-new_data = count_u[count_u['count'] > 4000] #we kept our 32 couples
-min(new_data['count']) #11491
+min(data_couples['sum']) #11491
+max(data_couples['sum']) # 17206
+data_couples['sum'].mean() #14977.125
+#We're all good
 #for each location and direction we will have a time series
-#where the volume is a function of "Date-Hour"
 
 
 
-
-
+#This function takes a couple (location,direction) and returns its time series
 def ts_for_couple(location,direction):
     #location and direction are strings
     extract=df.loc[df.location_name==location][df.Direction==direction]
@@ -109,7 +105,7 @@ def ts_for_couple(location,direction):
 #On va stocker notre data dans un dictionnaire qui prend comme clé le couple (location,direction) et lui attribue sa série 
 #temporelle correspondante.
 dict_df={}
-couples=new_data[['location_name','Direction']]
+couples=data_couples[['location_name','Direction']]
 couples=[tuple(couples.iloc[i]) for i in range(couples.shape[0])]
 volume=[]
 for couple in couples:
@@ -122,74 +118,11 @@ for i in range(len(volume)):
 
 #on va scallé les volume (aka notre y) plus tard 
     
-    
-    
-    
-    
-    
-    
- """
-#df.index[2745990]  
-#Creating a train set and validation set
-train_set = df[:'2019-08-13 02:00:00']   #oublie pas de changer l'indice au lieu de year
-test_set = df['2019-08-13 02:00:00':]
-print('Proportion of train_set : {:.2f}%'.format(len(train_set)/len(df)))
-#Proportion of train_set : 0.89%
-print('Proportion of test_set : {:.2f}%'.format(len(test_set)/len(df)))
-#Proportion of test_set : 0.11%
+########################################################################
+############################## CNN Model ###############################
+########################################################################
 
 
-
-
-#Let's focus on train set
-train_set.describe()
-print(train_set.shape)
-train_set.head()
-
-
-#Let's focus on validation set
-test_set.describe()
-print(train_set.shape)
-train_set.head()
-
-#Let's focus on train set
-train_set.describe()
-print(train_set.shape)
-train_set.head()
-
-
-#Let's focus on validation set
-test_set.describe()
-print(train_set.shape)
-train_set.head()
-
-
-print(train_set.index.min(), train_set.index.max())
-print(test_set.index.min(), test_set.index.max())
-
-def sin_transform(values):
-    return np.sin(2*np.pi*values/len(set(values)))
-
-def cos_transform(values):
-    return np.cos(2*np.pi*values/len(set(values)))
-
-
-df['dayofweek_sin'] = sin_transform(df['Day of Week'])
-df['dayofweek_cos'] = cos_transform(df['Day of Week'])
-df['month_sin'] = sin_transform(df['Month'])
-df['month_cos'] = cos_transform(df['Month'])
-df['day_sin'] = sin_transform(df['Day'])
-df['day_cos'] = cos_transform(df['Day'])
-
-
-
-plt.plot(sin_transform(np.arange(0,12)), label='month_sin')
-plt.plot(cos_transform(np.arange(0,12)), label='month_cos')
-plt.legend()
-"""
-
-
-#### Le réseau de neuronnes #####
     
     
 class TimeCNN(nn.Module):
@@ -208,7 +141,7 @@ class TimeCNN(nn.Module):
         self.fc1 = nn.Linear(in_features=64*8, out_features=130)   #130 par 80
         self.drop = nn.Dropout2d(0.3)
         #self.fc2 = nn.Linear(in_features=128, out_features=32)
-        self.fc3 = nn.Linear(in_features=130, out_features=24*7)
+        self.fc2 = nn.Linear(in_features=130, out_features=24*7)
         
     def forward(self, x):
         out = self.layer1(x)
@@ -217,18 +150,20 @@ class TimeCNN(nn.Module):
         out = self.fc1(out)
         out = self.drop(out)
         #out = self.fc2(out)
-        out = self.fc3(out)
+        out = self.fc2(out)
         return out
-#seq=Get_Time_Series(names[0], directions[0])
+    
+    
+#seq=ts_for_couple(names[0], directions[0])
 #building the sliding window
-#n_steps=24*30*2 #2 months
-#horizon=24*7 #1 week
-#min count in data is 11491 we will have a lot more than 7(mincount//n_steps) samples-we only move the window by 24*7
-def split_ts(seq,horizon=24*7,n_steps=24*30*2):
-    """ this function take in arguments a traffic Time Series for the couple (l,d)
-    and applies a sliding window of length n_steps to generates samples having this 
-    length and their labels (to be predicted) whose size is horizon
-    """
+#n_steps=24*30*2 => 2 months
+#horizon=24*7 => 1 week
+#min sum in data is 11491 we will have a lot more than 7(mincount//n_steps) samples
+#we only move the window by 24*7 (1week)
+#This function helps do so: it takes in arguments a traffic volume times series for a couple (location,direction)
+#and applies a slicing window (length=n_steps) and creates samples with length=n_steps and their labels (size=horizon)
+
+def ts_sequence_building(seq,horizon=24*7,n_steps=24*30*2):
     #for the Min-Max normalization X-min(seq)/max(seq)-min(seq)
     max_seq=max(seq)
     min_seq=min(seq)
@@ -245,34 +180,23 @@ def split_ts(seq,horizon=24*7,n_steps=24*30*2):
     print("number of samples %d and sample size %d (%d months)" %(len(xlist),len(xlist[0]),n_steps/(24*30)))
     return(xlist,ylist)
 
+
+#This function splits samples ans labels datasets xlist and ylist into a training and test set
 def train_test_set(xlist,ylist):
-    """ this functions splits the samples and labels datasets xlist and ylist
-    (given by the function split_ts) into a training set and a test set
-    """
-    """
-    data_size=len(xlist)
-    test_size=int(data_size*0.2) #20% of the dataset
-    #training set
-    X_train  = xlist[:data_size-test_size]
-    Y_train = ylist[:data_size-test_size]
-    #test set
-    X_test = xlist[data_size-test_size:]
-    Y_test = ylist[data_size-test_size:]
-    """
-    X_train, X_test, Y_train, Y_test =train_test_split(xlist,ylist,test_size=0.2,random_state=1)
+    X_train, X_test, Y_train, Y_test =train_test_split(xlist,ylist,test_size=0.2,random_state=1)  # test set is #20% of the dataset
     return(X_train,Y_train,X_test,Y_test)
 
 def model_traffic(mod,seq,num_ep=60,horizon=24*7,n_steps=24*30*2):
     #inputs are the model mod, the Time Series sequence and the number of epochs
     #building the model
-    xlist,ylist = split_ts(seq,horizon,n_steps)
+    xlist,ylist = ts_sequence_building(seq,horizon,n_steps)
     X_train,Y_train,X_test,Y_test=train_test_set(xlist,ylist)
     idxtr = list(range(len(X_train)))
     #loss and optimizer
     loss = torch.nn.MSELoss()
     opt = torch.optim.Adam(mod.parameters(),lr=0.0005)
     for ep in range(num_ep):
-        shuffle(idxtr)
+        random.shuffle(idxtr)
         ep_loss=0.
         mod.train()
         for j in idxtr:
@@ -301,10 +225,8 @@ def model_traffic(mod,seq,num_ep=60,horizon=24*7,n_steps=24*30*2):
         test_loss+= loss(haty,Y_test[i].view(1,-1))
     return ep_loss,test_loss
 
+#Now let's train and evaluate the model for each (location,direction)
 
-###################################################################
-# TRAINING AND EVALUATION OF THE MODEL FOR EACH (LOCATION,DIRECTION)
-###################################################################
 results = pd.DataFrame( columns = ["couple", "training_loss", "test_loss"])
 num_ep=10000
 horizon=24*7
