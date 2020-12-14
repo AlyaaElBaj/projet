@@ -18,10 +18,14 @@ import torch
 from torch import nn
 from torch.utils.data import TensorDataset, DataLoader
 
+from torch.utils.data import Dataset,DataLoader
+
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
 import random 
+
+import gc
 
 
 
@@ -270,13 +274,21 @@ df2=df2.sort_values(by='Year',ascending=True)
 # Dealing with missing values
 df2 = df2.replace(to_replace='None', value=np.nan).dropna()
 
+#scaller le y
+y=np.array(df2['Volume'])
+y.reshape(1,-1)
+scaler_y = MinMaxScaler()
+print(scaler_y.fit(y))   #?????????????,
+yscale=scaler_y.transform(y)
+df2['Volume']=yscale
+
 #This time we will train our model only on one couple (location,direction) that will be choosen randomly
 #We will use data_couples used before to select randomly a couple
 def generate_ts_data():
     i=random.randint(0,32) #because we have 32 couples
     location=data_couples['location_name'][i]
     direction=data_couples['Direction'][i]
-    return df[(df['location_name']==location) & (df['Direction']==direction)]
+    return df2[(df2['location_name']==location) & (df2['Direction']==direction)]
 
 df3=generate_ts_data()
 #df3.index=pd.to_datetime(df3['Year'])
@@ -286,12 +298,12 @@ df3=generate_ts_data()
 
 #math.ceil(len(df3)*(8/10)) 
 #Creating a train set and validation set
-train_set1 = df3[:133886]
-valid_set1 = df3[133887:]
+train_set1 = df3[:math.ceil(len(df3)*(8/10))]
+valid_set1 = df3[math.ceil(len(df3)*(8/10))+1:]
 print('Proportion of train_set : {:.2f}%'.format(len(train_set1)/len(df3)))
-#Proportion of train_set : 0.89%
+#Proportion of train_set : 0.80%
 print('Proportion of valid_set : {:.2f}%'.format(len(valid_set1)/len(df3)))
-#Proportion of valid_set : 0.11%
+#Proportion of valid_set : 0.10%
                     
 def split_sequence(sequence, n_steps):
     x, y = list(), list()
@@ -304,12 +316,14 @@ def split_sequence(sequence, n_steps):
         seq_x, seq_y = sequence[i:end_ix], sequence[end_ix]
         x.append(seq_x)
         y.append(seq_y)
-    return array(x), array(y)
+    return np.array(x), np.array(y)
 
 
 n_steps = 3
-train_x,train_y = split_sequence(train_set.Volume.values,n_steps)
-valid_x,valid_y = split_sequence(valid_set.Volume.values,n_steps)
+train_x,train_y = split_sequence(train_set1.Volume.values,n_steps)
+valid_x,valid_y = split_sequence(valid_set1.Volume.values,n_steps)
+
+#pas très sure pour le x et y
 
 
 class TrafficDataset(Dataset):
@@ -326,8 +340,15 @@ class TrafficDataset(Dataset):
         
         return item,label
     
+train = TrafficDataset(train_x.reshape(train_x.shape[0],train_x.shape[1],1),train_y)
+valid = TrafficDataset(valid_x.reshape(valid_x.shape[0],valid_x.shape[1],1),valid_y)
+train_loader = torch.utils.data.DataLoader(train,batch_size=2,shuffle=False)
+valid_loader = torch.utils.data.DataLoader(train,batch_size=2,shuffle=False)
     
+
+## Modèle CNN    
 class CNN_ForecastNet(nn.Module):
+    #layers
     def __init__(self):
         super(CNN_ForecastNet,self).__init__()
         self.conv1d = nn.Conv1d(3,64,kernel_size=1)
@@ -351,14 +372,10 @@ model = CNN_ForecastNet().to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 criterion = nn.MSELoss()
 
-train = ElecDataset(train_x.reshape(train_x.shape[0],train_x.shape[1],1),train_y)
-valid = ElecDataset(valid_x.reshape(valid_x.shape[0],valid_x.shape[1],1),valid_y)
-train_loader = torch.utils.data.DataLoader(train,batch_size=2,shuffle=False)
-valid_loader = torch.utils.data.DataLoader(train,batch_size=2,shuffle=False)
-
 
 train_losses = []
 valid_losses = []
+
 def Train():
     
     running_loss = .0
@@ -409,17 +426,18 @@ for epoch in range(epochs):
     
     
 #plot l'erreur
-import matplotlib.pyplot as plt
+    
 plt.plot(train_losses,label='train_loss')
 plt.plot(valid_losses,label='valid_loss')
 plt.title('MSE Loss')
 plt.ylim(0, 100)
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
+
+
 #scaler_y = MinMaxScaler()
 #print(scaler_y.fit(y))
 #yscale=scaler_y.transform(y)
-#on ne peut pas scaller x car c'est des variables qualitatives mais j'ai scaller y (pas sure si j ai le droit de scaller que y)
 
 
 
