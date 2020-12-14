@@ -282,15 +282,15 @@ df3=generate_ts_data()
 #df3.index=pd.to_datetime(df3['Year'])
 #df3=df3.drop(columns=['Year'])
 
-#iciiii y a un problème !!!
+#iciiii y a un problème !!!  + SCalller DATA !!!!!!!!!!
 
-#df3.index[math.ceil(len(df3)*(8/10))]  
+#math.ceil(len(df3)*(8/10)) 
 #Creating a train set and validation set
-train_set = df3[:3257822]
-valid_set = df3[3257823:]
-print('Proportion of train_set : {:.2f}%'.format(len(train_set)/len(df)))
+train_set1 = df3[:133886]
+valid_set1 = df3[133887:]
+print('Proportion of train_set : {:.2f}%'.format(len(train_set1)/len(df3)))
 #Proportion of train_set : 0.89%
-print('Proportion of valid_set : {:.2f}%'.format(len(valid_set)/len(df)))
+print('Proportion of valid_set : {:.2f}%'.format(len(valid_set1)/len(df3)))
 #Proportion of valid_set : 0.11%
                     
 def split_sequence(sequence, n_steps):
@@ -306,12 +306,115 @@ def split_sequence(sequence, n_steps):
         y.append(seq_y)
     return array(x), array(y)
 
-raw_seq = [10,20,30,40,50,60,70,80,90]
+
 n_steps = 3
-train_x,train_y = split_sequence(train_set.Elec_kW.values,n_steps)
-valid_x,valid_y = split_sequence(valid_set.Elec_kW.values,n_steps)
+train_x,train_y = split_sequence(train_set.Volume.values,n_steps)
+valid_x,valid_y = split_sequence(valid_set.Volume.values,n_steps)
 
 
+class TrafficDataset(Dataset):
+    def __init__(self,feature,target):
+        self.feature = feature
+        self.target = target
+    
+    def __len__(self):
+        return len(self.feature)
+    
+    def __getitem__(self,idx):
+        item = self.feature[idx]
+        label = self.target[idx]
+        
+        return item,label
+    
+    
+class CNN_ForecastNet(nn.Module):
+    def __init__(self):
+        super(CNN_ForecastNet,self).__init__()
+        self.conv1d = nn.Conv1d(3,64,kernel_size=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc1 = nn.Linear(64*2,50)
+        self.fc2 = nn.Linear(50,1)
+        
+    def forward(self,x):
+        x = self.conv1d(x)
+        x = self.relu(x)
+        x = x.view(-1)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        
+        return x
+    
+    
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+model = CNN_ForecastNet().to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+criterion = nn.MSELoss()
+
+train = ElecDataset(train_x.reshape(train_x.shape[0],train_x.shape[1],1),train_y)
+valid = ElecDataset(valid_x.reshape(valid_x.shape[0],valid_x.shape[1],1),valid_y)
+train_loader = torch.utils.data.DataLoader(train,batch_size=2,shuffle=False)
+valid_loader = torch.utils.data.DataLoader(train,batch_size=2,shuffle=False)
+
+
+train_losses = []
+valid_losses = []
+def Train():
+    
+    running_loss = .0
+    
+    model.train()
+    
+    for idx, (inputs,labels) in enumerate(train_loader):
+        inputs = inputs.to(device)
+        labels = labels.to(device)
+        optimizer.zero_grad()
+        preds = model(inputs.float())
+        loss = criterion(preds,labels)
+        loss.backward()
+        optimizer.step()
+        running_loss += loss
+        
+    train_loss = running_loss/len(train_loader)
+    train_losses.append(train_loss.detach().numpy())
+    
+    print(f'train_loss {train_loss}')
+    
+def Valid():
+    running_loss = .0
+    
+    model.eval()
+    
+    with torch.no_grad():
+        for idx, (inputs, labels) in enumerate(valid_loader):
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            optimizer.zero_grad()
+            preds = model(inputs.float())
+            loss = criterion(preds,labels)
+            running_loss += loss
+            
+        valid_loss = running_loss/len(valid_loader)
+        valid_losses.append(valid_loss.detach().numpy())
+        print(f'valid_loss {valid_loss}')
+
+epochs = 200
+for epoch in range(epochs):
+    print('epochs {}/{}'.format(epoch+1,epochs))
+    Train()
+    Valid()
+    gc.collect()
+    
+ 
+    
+    
+#plot l'erreur
+import matplotlib.pyplot as plt
+plt.plot(train_losses,label='train_loss')
+plt.plot(valid_losses,label='valid_loss')
+plt.title('MSE Loss')
+plt.ylim(0, 100)
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
 #scaler_y = MinMaxScaler()
 #print(scaler_y.fit(y))
