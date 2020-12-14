@@ -247,6 +247,51 @@ for l,d in dict_df.keys():
 ############################################################################################################# """
 
 #################### Une Nouvelle approche #######################
+
+# Load and cleanup data from csv file.
+df2 = pd.read_csv("Radar_Traffic_Counts.csv")
+# cleanup leading space in names
+df2['location_name']=df2.location_name.apply(lambda x: x.strip()) 
+
+#Aggregate data to get mean traffic in each direction, by the hour, at all sensor locations
+hourly_vol = df2.groupby(['location_name','location_latitude','location_longitude','Direction','Hour']).agg({'Volume':'mean'}).reset_index()
+hourly_vol.sample(2)
+
+# Creating a datetime column
+df2[["Year"]]= pd.to_datetime(df2["Year"] * 100000000 +df2["Month"]*1000000+ df2["Day"] * 10000 + df2["Hour"]*100 , format="%Y%m%d%H%M")
+df2 = df2.drop(columns=[ "Month", "Day","Day of Week","Hour","Minute","Time Bin"])
+
+#drop the columns location_latitude and location_longitude because I will only use location name and direction as inputs to predict the output Volume
+df2 = df2.drop(columns=["location_latitude", "location_longitude"])
+
+#sorting the data by 'Year'
+df2=df2.sort_values(by='Year',ascending=True)
+
+# Dealing with missing values
+df2 = df2.replace(to_replace='None', value=np.nan).dropna()
+
+#This time we will train our model only on one couple (location,direction) that will be choosen randomly
+#We will use data_couples used before to select randomly a couple
+def generate_ts_data():
+    i=random.randint(0,32) #because we have 32 couples
+    location=data_couples['location_name'][i]
+    direction=data_couples['Direction'][i]
+    return df[(df['location_name']==location) & (df['Direction']==direction)]
+
+df3=generate_ts_data()
+#df3.index=pd.to_datetime(df3['Year'])
+#df3=df3.drop(columns=['Year'])
+
+#iciiii y a un problème !!!
+
+#df3.index[math.ceil(len(df3)*(8/10))]  
+#Creating a train set and validation set
+train_set = df3[:3257822]
+valid_set = df3[3257823:]
+print('Proportion of train_set : {:.2f}%'.format(len(train_set)/len(df)))
+#Proportion of train_set : 0.89%
+print('Proportion of valid_set : {:.2f}%'.format(len(valid_set)/len(df)))
+#Proportion of valid_set : 0.11%
                     
 def split_sequence(sequence, n_steps):
     x, y = list(), list()
