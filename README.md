@@ -57,3 +57,76 @@ J'ai testé différentes valeurs pour le nombres de neuronnes (je détaillerai l
 Je me suis servi du dictionnaire qui prend comme clé le couple (location,direction) et lui attribue sa série temporelle mentionné précedemment, afin d'entraîner et évaluer le model sur chaque couple avec les données correspondantes.
 
 ## Les résultats: analyse et comparaison
+#### L'influence du nombre de neuronnes:
+J'ai fixé tout d'abord dans ce qui suit le nombre d'epochs à 500, et le learning rate du Adam optimizer à 0.0005.
+
+J'ai regardé pour les couples ('100 BLK S CONGRESS AVE (Congress Bridge)', 'NB') et ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB').
+##### Premier cas avec maxpool2= 5 et out_features=80 pour fc1:
+Dans ce cas, j'ai fixé le maxpool pour la deuxième couche convolutionnelle à 5, et le nombre de neuronnes pour le preumier fully connected layer à 80.
+
+Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'NB'):
+
+![neurone1](https://user-images.githubusercontent.com/72867518/102231868-bda86380-3eee-11eb-80f9-b802c41e2690.JPG)
+
+![neuronnes1](https://user-images.githubusercontent.com/72867518/102225167-2db2eb80-3ee7-11eb-8ed9-ad2f53df7c41.png)
+
+Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB'):
+
+![neurone1bis](https://user-images.githubusercontent.com/72867518/102232414-62c33c00-3eef-11eb-95c0-87b83cd12e40.JPG)
+
+![neuronnes1bis](https://user-images.githubusercontent.com/72867518/102232416-648cff80-3eef-11eb-9b0c-e1be385fdd70.png)
+
+
+##### Deuxième cas avec maxpool2= 2 et out_features=50 pour fc1:
+J'ai remarqué que le modèle prenait beaucoup de temps pour renvoyer les loss, j'ai donc décidé de diminuer le maxpool pour la deuxième couche convolutionnelle à 2, et le nombre de neuronnes pour le preumier fully connected layer à 50.
+
+Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'NB'):
+
+![neurone2](https://user-images.githubusercontent.com/72867518/102230163-d1eb6100-3eec-11eb-93d7-110b4a9808f9.JPG)
+
+![neuronnes2](https://user-images.githubusercontent.com/72867518/102225878-ff81db80-3ee7-11eb-8257-ba6348c545cd.png)
+
+Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB'):
+
+![neurone2bis](https://user-images.githubusercontent.com/72867518/102230526-445c4100-3eed-11eb-92be-f315a66904b0.JPG)
+
+![neuronnes2bis](https://user-images.githubusercontent.com/72867518/102230507-40302380-3eed-11eb-909f-5857e24764b6.png)
+
+
+##### Troisième cas avec maxpool2= 8 et out_features=120 pour fc1:
+J'ai décidé cette fois de rendre mon réseau de neuronnes un peu plus riche et compliqué, j'ai donc décidé d'augmenter le maxpool pour la deuxième couche convolutionnelle à 8, et le nombre de neuronnes pour le preumier fully connected layer à 130.
+
+Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'NB'):
+
+Les résultats obtenus sont les suivants:
+
+![neurone3](https://user-images.githubusercontent.com/72867518/102232806-db29fd00-3eef-11eb-87c9-88b9d96da684.JPG)
+
+![neuronnes3](https://user-images.githubusercontent.com/72867518/102232812-dcf3c080-3eef-11eb-8998-ba9f53fef455.png)
+
+Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB'):
+
+![neurone3bis](https://user-images.githubusercontent.com/72867518/102233504-a1a5c180-3ef0-11eb-9cce-277d3fa4af2f.JPG)
+
+![neuronnes3bis](https://user-images.githubusercontent.com/72867518/102233513-a5394880-3ef0-11eb-99d6-af481ebe78b3.png)
+
+##### Synthèse:
+
+
+#### L'influence du nombre des epochs:
+
+J'ai fixé dans ce cas le learning rate du Adam optimizer à 0.0005, le maxpool pour la deuxième couche convolutionnelle à 5, et le nombre de neuronnes pour le preumier fully connected layer à 80.
+
+J'ai regardé pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'NB') et ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB').
+
+Regardons l'évolution des train loss et test loss entre 500 et 1500 epochs. 
+
+##### Synthèse:
+
+#### L'influence du learning rate:
+
+J'ai fixé dans ce cas les epochs à 400, le maxpool pour la deuxième couche convolutionnelle à 5, et le nombre de neuronnes pour le preumier fully connected layer à 80.
+
+J'ai regardé pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'NB') et ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB').
+
+##### Synthèse:
