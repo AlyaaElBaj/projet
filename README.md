@@ -111,7 +111,7 @@ Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB'):
 ![neuronnes3bis](https://user-images.githubusercontent.com/72867518/102233513-a5394880-3ef0-11eb-99d6-af481ebe78b3.png)
 
 ##### Synthèse:
-
+Nous remarquons que le premier cas semble être le plus intéréssant. En effet, ce dernier a des trainning loss et test loss plus petits que les deux autres cas et ça se voit surtout dans le deuxième couple. Remarquons cependant, que pour les deuxième cas le **train loss** est bien minimal en comparaison avec le premier et dernier cas. Le troisème cas met en place un modèle compliqué avec beaucoup de neuronnes, qui prend beaucoup de temps et qui finalement n'améliore pas les résultats.
 
 #### L'influence du nombre des epochs:
 
@@ -143,11 +143,11 @@ Durant mon projet, j'ai essayé une autre approche avec une couche de convolutio
 
 ## Suggéstions d'améliorations
 
-Comme vous avez dû le remarquer, tout le travail de recherche d'un loss minimale était basé sur une recherche manuelle où je modifiais à la main les paramètres, répéter cette procédure jusqu'à trouver les bon paramètres permettant de miniminer le loss. Une méthode plus efficace serait d'avoir une partie du code qui fait le tunning des hyperparametres. A savoir par des méthodes d'optimisation.
+Comme vous avez dû le remarquer, tout le travail de recherche d'un loss minimale était basé sur une recherche manuelle où je modifiais à la main les paramètres, répéter cette procédure jusqu'à trouver les bons paramètres permettant de miniminer le loss. Une méthode plus efficace serait d'avoir une partie du code qui fait le tunning des hyperparametres. A savoir par des méthodes d'optimisation.
 
 ## Les difficultés rencontrées et surmontées
 
-La correction du modèle des réseaux de neuronnes convolutionnelles que nous avions vu avec Monsieur Christophe Cerisara pour les prédictions des ventes m'a beaucoup aidé pour assimiler différents concepts. Cependant, par manque de pratique et de manipulation, c'était un peu délicat de s'adapter avec l'environnement git. Après plusieurs tentatives, j'ai résussis à utiliser Git Desktop qui facilite la tâche. Il a aussi fallut s'adapter à la rédaction d'un rapport sur MarkDown, pour ce faire j'ai télécharger Barckets qui a une extention MarkDown et qui permet de visualiser facilement le texte. Je copiais ensuite ma rédation sur mon fichier sur Github.
+La correction du modèle des réseaux de neuronnes convolutionnelles que nous avions vu avec Monsieur Christophe Cerisara pour les prédictions des ventes m'a beaucoup aidé pour assimiler différents concepts. Cependant, par manque de pratique et de manipulation, c'était un peu délicat au début de s'adapter avec l'environnement Git. Après plusieurs tentatives, j'ai résussis à utiliser Git Desktop qui facilite la tâche. Il a aussi fallut s'adapter à la rédaction d'un rapport sur MarkDown, pour ce faire j'ai télécharger Barckets qui a une extention MarkDown et qui permet de visualiser facilement le texte. Je copiais ensuite ma rédation sur mon fichier sur Github.
 
 ## Les références
 
