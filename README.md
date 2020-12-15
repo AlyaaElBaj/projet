@@ -135,6 +135,7 @@ Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB'):
 
 ##### Synthèse:
 
+Nous remarquons que le training loss diminue significativement pour l'exemple des deux couples jusqu'à l'epoch 600, au delà nous remarquons une oscillation très faible qu'on peut même considérer constante. Pour le test loss il diminue significativement pour les 150 premier epochs, mais au delà il connaît une légère augmentation avant de se fixer au alentour de 0,34 pour le premier exemple et 0,27 pour le deuxième.
 
 ## Autres tentatives réalisées
 
