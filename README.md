@@ -48,3 +48,12 @@ J'expliquerai en détails dans cette partie la démarche utilisée, la structure
 Comme mentionné précédemment, j'ai commencé par créer des échantillons avec leurs labels. La prédiction sera basé sur les 4 mois précédent (le input est donc de taille 24*30*4) pour prédire le traffic pour chaque jour de la semaine qui suit (Le output est donc de taille 24*7). Notre fenêtre glissante va donc avancer avec un pas de temps égal à la taille du output.
 
 La fonction * ts_sequence_building * prend en argument une série temporelle de volume de trafic pour un couple (emplacement, direction) et applique une fenêtre de découpage (donc la taille d'avancement et le pas du temps) et renvoie une liste d'échantillons avec leurs labels. Ensuite, nous générons un train set et test set pour les inputs et outputs à partir des listes renvoyées par la fonction * ts_sequence_building *. Pour ce faire, j'ai utilisé la commande *train_test_split* .
+
+#### Structure et mise en place du réseau de neuronnes:
+J'ai utilisé un 1D Convolutionnal Neural Networks avec deux couches de convolution (avec kernel_size=3 pour les deux) et deux fully connected layers. Enfin, j'ai utilisé Adam optimizer avec un learning rate que je ferai varier pour voir s'il y a des améliorations et j'ai utilisé le MSE loss.
+
+J'ai testé différentes valeurs pour le nombres de neuronnes (je détaillerai les résultats de chaque choix par la suite), et j'ai ajouté un dropout layer pour empêcher les problèmes du overfitting dans le modèle.
+
+Je me suis servi du dictionnaire qui prend comme clé le couple (location,direction) et lui attribue sa série temporelle mentionné précedemment, afin d'entraîner et évaluer le model sur chaque couple avec les données correspondantes.
+
+## Les résultats: analyse et comparaison
