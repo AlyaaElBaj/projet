@@ -14,6 +14,7 @@ De façon globale nous pouvons regrouper les informations que nous présente la 
 - ** Le traffic **: est donné par la dernière colonne volume et qui est notre variable qu'on cherche à prédire.
 
 Ci-dessous quelques informations complémentaires sur notre Data Set:
+
 ![infodata](https://user-images.githubusercontent.com/72867518/102204160-c8043680-3ec9-11eb-818a-dd4e4897ebe9.JPG)
 
 Pour résumer, notons que notre data set s'étale sur une période de 3 ans allant de 2017 à 2019, et qu'il comporte 32 couple (location, direction).
