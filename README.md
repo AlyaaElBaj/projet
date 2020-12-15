@@ -138,7 +138,7 @@ Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB'):
 
 ## Autres tentatives réalisées
 
-Durant mon projet, j'ai essayé une autre approche avec une couche de convolution une couche d'activation non linéaire et un fully connected layer. La différence aussi résidait dans le splitting du train et test set. Quelques soucis techniques m'ont empêchés de me tarder sur ce modèle plutôt simple en comparaison avec le premier modèle et consacrer mes efforts à analyser plus en détails les résultats obtenus pour ce premier modèle.
+Durant mon projet, j'ai essayé une autre approche avec une couche de convolution une couche d'activation non linéaire et un fully connected layer. La différence résidait aussi dans le splitting du train et test set. Quelques soucis techniques m'ont empêchés de me tarder sur ce modèle plutôt simple en comparaison avec le premier modèle et consacrer mes efforts à analyser plus en détails les résultats obtenus pour ce premier modèle.
 
 ## Suggéstions d'améliorations
 
