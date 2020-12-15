@@ -191,7 +191,7 @@ def train_test_set(xlist,ylist):
     return(X_train,Y_train,X_test,Y_test)
 
 
-def model_traffic(mod,seq,num_ep=60,horizon=24*7,n_steps=24*30*2):
+def ModelComplet(mod,seq,num_ep=60,horizon=24*7,n_steps=24*30*2):
     #inputs are the model mod, the Time Series sequence and the number of epochs
     #building the model
     xlist,ylist = split_ts(seq,horizon,n_steps)
@@ -242,9 +242,9 @@ def model_traffic(mod,seq,num_ep=60,horizon=24*7,n_steps=24*30*2):
 
 
 results = pd.DataFrame( columns = ["couple", "training_loss", "test_loss"])
-num_ep=10000
+num_ep=1000
 horizon=24*7
-n_steps=24*28*3
+n_steps=24*28*4
 
 for l,d in dict_df.keys():
     seq=dict_df[(l,d)] #volume sequence for (l,d) location, direction
@@ -252,7 +252,7 @@ for l,d in dict_df.keys():
     print("couple:",(l,d))
     print("number of samples in the dataset:", len(xlist))
     mod = TimeCNN()
-    train_loss, test_loss =model_traffic(mod,seq,num_ep,horizon,n_steps)
+    train_loss, test_loss =ModelComplet(mod,seq,num_ep,horizon,n_steps)
     print("train_loss, test_loss =", train_loss, test_loss, "\n")
     results.loc[len(results)] = [couple, train_loss, test_loss]
     del(mod)
