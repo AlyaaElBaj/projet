@@ -9,9 +9,9 @@ L'ensemble de données comprend 4 603 861 lignes et 12 colonnes : **location_nam
 Ci-dessous un aperçu sur les données:
 ![data](https://user-images.githubusercontent.com/72867518/102202614-d5202600-3ec7-11eb-98df-f3208b417d31.JPG)
 De façon globale nous pouvons regrouper les informations que nous présente la base de données comme suivant:
-- ** La localisation ** : est donnée par les trois premières colonnes où on voit apparaître le nom de la localisation en plus de sa latitude et longitude. Ainsi que la colonne 'Direction' avec les possibilités suivantes: 'NB','SB','EB','WB', 'None'.
-- ** La date ** : est donnée par 7 colones à savoir, 'Year','Month', 'Day', 'Day of Week', 'Hour', Minute', 'Time Bin'.
-- ** Le traffic **: est donné par la dernière colonne volume et qui est notre variable qu'on cherche à prédire.
+- **La localisation** : est donnée par les trois premières colonnes où on voit apparaître le nom de la localisation en plus de sa latitude et longitude. Ainsi que la colonne 'Direction' avec les possibilités suivantes: 'NB','SB','EB','WB', 'None'.
+- **La date** : est donnée par 7 colones à savoir, 'Year','Month', 'Day', 'Day of Week', 'Hour', Minute', 'Time Bin'.
+- **Le traffic**: est donné par la dernière colonne volume et qui est notre variable qu'on cherche à prédire.
 
 Ci-dessous quelques informations complémentaires sur notre Data Set:
 
