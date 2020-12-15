@@ -40,3 +40,11 @@ Le but étant donc de préparer notre série temporelle pour le modèle et avoir
 
 Dans ce qui suit, j'ai utilisé un Convolutionnal Neural Networks qui est souvant utilisé dans le cas de prédiction pour les séries temporelles. Notons aussi que cette approche a été inspirée des explications de Monsieur Christophe Cerisara pour la construction d'un réseau de neuronnes convolutionnel pour la prédiction de ventes.
 
+## Le model: Convolutionnal Neural Networks - CNN
+
+J'expliquerai en détails dans cette partie la démarche utilisée, la structure ainsi que la mise en place des paramètres du modèle.
+
+#### Sliding Window:
+Comme mentionné précédemment, j'ai commencé par créer des échantillons avec leurs labels. La prédiction sera basé sur les 4 mois précédent (le input est donc de taille 24*30*4) pour prédire le traffic pour chaque jour de la semaine qui suit (Le output est donc de taille 24*7). Notre fenêtre glissante va donc avancer avec un pas de temps égal à la taille du output.
+
+La fonction * ts_sequence_building * prend en argument une série temporelle de volume de trafic pour un couple (emplacement, direction) et applique une fenêtre de découpage (donc la taille d'avancement et le pas du temps) et renvoie une liste d'échantillons avec leurs labels. Ensuite, nous générons un train set et test set pour les inputs et outputs à partir des listes renvoyées par la fonction * ts_sequence_building *. Pour ce faire, j'ai utilisé la commande *train_test_split* .
