@@ -121,12 +121,39 @@ J'ai regardé pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'NB') 
 
 Regardons l'évolution des train loss et test loss entre 500 et 1500 epochs. 
 
+Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'NB'):
+
+![epochs1](https://user-images.githubusercontent.com/72867518/102238844-8342c480-3ef6-11eb-9869-92c9d02a352e.JPG)
+
+![epochss1](https://user-images.githubusercontent.com/72867518/102238851-863db500-3ef6-11eb-84b9-5c623aa625d9.png)
+
+Pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB'):
+
+![epochs2](https://user-images.githubusercontent.com/72867518/102239740-783c6400-3ef7-11eb-9d13-571b051a2f5d.JPG)
+
+![epochss2](https://user-images.githubusercontent.com/72867518/102239756-7bcfeb00-3ef7-11eb-9e37-d2159acc781b.png)
+
 ##### Synthèse:
 
-#### L'influence du learning rate:
 
-J'ai fixé dans ce cas les epochs à 400, le maxpool pour la deuxième couche convolutionnelle à 5, et le nombre de neuronnes pour le preumier fully connected layer à 80.
+## Autres tentatives réalisées
 
-J'ai regardé pour le couple ('100 BLK S CONGRESS AVE (Congress Bridge)', 'NB') et ('100 BLK S CONGRESS AVE (Congress Bridge)', 'SB').
+Durant mon projet, j'ai essayé une autre approche avec une couche de convolution une couche d'activation non linéaire et un fully connected layer. La différence aussi résidait dans le splitting du train et test set. Quelques soucis techniques m'ont empêchés de me tarder sur ce modèle plutôt simple en comparaison avec le premier modèle et consacrer mes efforts à analyser plus en détails les résultats obtenus pour ce premier modèle.
 
-##### Synthèse:
+## Suggéstions d'améliorations
+
+Comme vous avez dû le remarquer, tout le travail de recherche d'un loss minimale était basé sur une recherche manuelle où je modifiais à la main les paramètres, répéter cette procédure jusqu'à trouver les bon paramètres permettant de miniminer le loss. Une méthode plus efficace serait d'avoir une partie du code qui fait le tunning des hyperparametres. A savoir par des méthodes d'optimisation.
+
+## Les difficultés rencontrées et surmontées
+
+La correction du modèle des réseaux de neuronnes convolutionnelles que nous avions vu avec Monsieur Christophe Cerisara pour les prédictions des ventes m'a beaucoup aidé pour assimiler différents concepts. Cependant, par manque de pratique et de manipulation, c'était un peu délicat de s'adapter avec l'environnement git. Après plusieurs tentatives, j'ai résussis à utiliser Git Desktop qui facilite la tâche. Il a aussi fallut s'adapter à la rédaction d'un rapport sur MarkDown, pour ce faire j'ai télécharger Barckets qui a une extention MarkDown et qui permet de visualiser facilement le texte. Je copiais ensuite ma rédation sur mon fichier sur Github.
+
+## Les références
+
+ [1] [Cours de Machine Learning de Monsieur Christophe Cerisara](https://members.loria.fr/CCerisara/#courses/machine_learning/) 
+ 
+ [2] https://www.kaggle.com/hanjoonchoe/cnn-time-series-forecasting-with-pytorch
+ 
+ [3] https://towardsdatascience.com/encoder-decoder-model-for-multistep-time-series-forecasting-using-pytorch-5d54c6af6e60
+
+
